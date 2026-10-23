@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>小红书标题生成器 · 小舟</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f9f7f4;color:#292727;font-family:system-ui,-apple-system,"PingFang SC",sans-serif}header{max-width:1080px;margin:auto;padding:28px 24px;display:flex;align-items:center;gap:10px;font-weight:700}.mark{background:#ee4d61;color:white;border-radius:12px;padding:8px 11px}main{max-width:900px;margin:40px auto;padding:0 24px 48px}.eyebrow{color:#c13d51;font-size:12px;letter-spacing:3px}h1{font-size:clamp(28px,5vw,44px);letter-spacing:-1px;margin:14px 0}p{color:#78716e;line-height:1.8}.layout{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;margin-top:32px}.card{background:white;border:1px solid #e9e3de;border-radius:22px;padding:28px;box-shadow:0 10px 35px #49302005}label{display:block;font-weight:600;font-size:14px;margin-bottom:10px}.field{margin-bottom:24px}.hint{float:right;color:#928985;font-weight:400;font-size:12px}input,textarea,select{width:100%;font:inherit;border:1px solid #ded8d4;border-radius:10px;padding:13px;background:#fff;color:#292727}textarea{resize:vertical;min-height:120px}input:focus,textarea:focus,select:focus{outline:3px solid #fce0e5;border-color:#e45b70}button{font:inherit;font-weight:600;border:0;cursor:pointer;border-radius:10px;padding:14px 20px;background:#eb4d64;color:white;width:100%}button:disabled{opacity:.6;cursor:wait}.result{min-height:280px;overflow-wrap:anywhere}.empty{padding:40px 0;text-align:center;color:#958a83}.empty span{font-size:32px;display:block;margin-bottom:16px}.result{scroll-margin-top:24px}.safe{background:#f0faf3;border-color:#7fbd95}.review{background:#fff6e8;border-color:#dba65a}.status-badge{display:inline-flex;align-items:center;gap:8px;margin:0 0 24px;padding:9px 13px;border-radius:9px;font-size:15px;line-height:1.6;font-weight:700}.safe .status-badge{background:#ccebd6;color:#185d34}.review .status-badge{background:#ffdfac;color:#814309}.status-icon{font-size:18px;flex-shrink:0}.title-label{color:#63574e;font-size:13px;font-weight:600;margin:0 0 8px}.review .title-label{color:#814309}#verdict{color:#75451c;border-top:1px solid #e8c999;padding-top:16px;margin:20px 0 0;white-space:pre-wrap;font-size:14px}.title{font-size:23px;line-height:1.7;white-space:pre-wrap}.copy{margin-top:24px;background:#247c4a}.error{color:#b62c40;font-size:14px}footer{font-size:12px;color:#978d87;margin-top:24px;text-align:center}[hidden]{display:none!important}@media(max-width:680px){main{margin:18px auto}.layout{grid-template-columns:1fr}.card{padding:22px}.result{min-height:200px}header{padding:20px 24px}}
+</style>
+</head>
+<body>
+<header><span class="mark">舟</span> 小舟创作室</header>
+<main><div class="eyebrow">灵感有方向 · 表达有分寸</div><h1>小红书标题生成器</h1><p>把商品亮点，变成让人想点开的第一句话。</p>
+<div class="layout"><form class="card" id="form">
+<div class="field"><label for="product">商品名 <span class="hint">最多 30 字</span></label><input id="product" name="product_name" required placeholder="例如：轻盈随行保温杯"></div>
+<div class="field"><label for="selling">核心卖点 <span class="hint">最多 100 字</span></label><textarea id="selling" name="selling_point" required placeholder="说说它的特别之处、适合谁，以及解决了什么问题。"></textarea></div>
+<div class="field"><label for="stage">营销段</label><select id="stage" name="stage"><option>认知</option><option>兴趣</option><option>购买</option><option>忠诚</option></select></div>
+<button id="generate" type="submit">生成标题 →</button><p id="error" class="error" role="alert" hidden></p>
+</form><section class="card result" id="result" aria-live="polite" aria-busy="false"><div id="empty" class="empty"><span>✧</span>好标题，从一个好卖点开始。<p>填写左侧信息，开启这次创作。</p></div><div id="output" hidden><h2 class="status-badge"><span class="status-icon" id="status-icon" aria-hidden="true"></span><span id="status"></span></h2><p class="title-label" id="title-label"></p><div class="title" id="title"></div><p id="verdict"></p><button class="copy" id="copy" type="button">复制标题</button></div></section></div><footer>小舟 × Dify · 让每一次表达，都更靠近你的用户</footer></main>
+<script>
+const form=document.querySelector('#form'),button=document.querySelector('#generate'),error=document.querySelector('#error'),result=document.querySelector('#result'),output=document.querySelector('#output'),empty=document.querySelector('#empty'),title=document.querySelector('#title'),copy=document.querySelector('#copy');
+form.addEventListener('submit',async event=>{
+ event.preventDefault();error.hidden=true;output.hidden=true;empty.hidden=false;result.className='card result';
+ const inputs=Object.fromEntries(new FormData(form));
+ if([...inputs.product_name].length>30||[...inputs.selling_point].length>100){error.textContent='商品名最多 30 字，核心卖点最多 100 字。';error.hidden=false;return;}
+ button.disabled=true;button.textContent='生成中';result.setAttribute('aria-busy','true');empty.textContent='正在为你打磨标题，请稍等…';
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),60000);
+ try{
+ const response=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inputs),signal:controller.signal});
+ let data;try{data=await response.json();}catch{throw new Error('请再试一次');}
+ if(!response.ok)throw new Error(data.error||'生成失败，请稍后再试。');
+ const review=data.type==='review';
+ result.classList.add(review?'review':'safe');
+ // 只对明确的判断值细分标签，其他内容保持人工复核状态。
+ const verdictLabel=typeof data.verdict==='string'?data.verdict.trim():'';
+ const reviewLabel=['有风险','待核实'].includes(verdictLabel)?verdictLabel+' · 需人工复核':'需要人工复核';
+ document.querySelector('#status').textContent=review?reviewLabel:'正常 · 已通过';
+ document.querySelector('#status-icon').textContent=review?'⚠':'✓';
+ document.querySelector('#title-label').textContent=review?'草稿标题':'生成标题';
+ title.textContent=review?data.draft:data.title;
+ document.querySelector('#verdict').textContent=review?'判断结果：'+data.verdict:'';
+ document.querySelector('#verdict').hidden=!review;
+ copy.hidden=review;copy.textContent='复制标题';empty.hidden=true;output.hidden=false;
+ if(window.matchMedia('(max-width: 680px)').matches){
+   result.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+ }
+ }catch(e){error.textContent=controller.signal.aborted?'请再试一次':(e instanceof TypeError?'网络连接失败，请稍后再试。':e.message);error.hidden=false;empty.textContent='暂时没有生成结果，请重试。';}
+ finally{clearTimeout(timer);button.disabled=false;button.textContent='生成标题 →';result.setAttribute('aria-busy','false');}
+});
+copy.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(title.textContent);copy.textContent='已复制 ✓';}catch{copy.textContent='复制失败，请长按或选中标题复制';}});
+</script></body></html>

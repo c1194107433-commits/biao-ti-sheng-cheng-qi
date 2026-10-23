@@ -1,0 +1,4 @@
+local.env
+.vercel/
+.DS_Store
+result-preview.png
